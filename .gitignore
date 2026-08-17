@@ -1,0 +1,21 @@
+.venv/
+__pycache__/
+*.pyc
+# 数据与产出
+示例车间A/
+示例车间B/
+待人工/
+debug_rois/
+处理日志.csv
+运行日志.csv
+ly-oa.log
+errors.log
+# PyInstaller 构建产物
+build/
+*.spec
+# dist 目录：打包产物(ly-oa.exe)只保留本地，不提交到 GitHub
+dist/
+# 日志与日报输出
+logs/
+参考模板/*
+!参考模板/固废填埋日统计表0809.xlsx
