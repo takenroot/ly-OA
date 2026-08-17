@@ -93,7 +93,7 @@ ly-OA 使用说明
 ------
 运行日志按天存放到 logs/ 目录:
 
-    logs/ly-oa_20260811.log
+    logs/ly-oa_YYYYMMDD.log
 
 里面包含每张图的识别结果和每次运行的汇总，方便排查问题。
 
