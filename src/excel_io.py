@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 from openpyxl import load_workbook
+from openpyxl.cell.cell import MergedCell
 
 from .validate import (
     COL_序号, COL_装车日期, COL_装车时间, COL_货品, COL_车牌, COL_司机,
@@ -76,54 +77,92 @@ def create_daily_xlsx(
         # 没有"合计"行,假设最后一行就是
         total_row = ws.max_row
 
-    # 清掉 row 3 ~ total_row-1 的数据(保留样式)
+    # 如果记录数超过模板预留的数据行数,在合计行前插入足够行
+    needed_rows = len(records)
+    available_rows = total_row - 3
+    if needed_rows > available_rows:
+        rows_to_insert = needed_rows - available_rows
+        ws.insert_rows(total_row, rows_to_insert)
+        total_row += rows_to_insert
+
+    # 清掉 row 3 ~ total_row-1 的数据(保留样式);跳过合并单元格
     for r in range(3, total_row):
         for c in range(1, 11):
-            ws.cell(row=r, column=c).value = None
+            cell = ws.cell(row=r, column=c)
+            if not isinstance(cell, MergedCell):
+                cell.value = None
 
     # 写入新数据
     for i, (rec, yellows) in enumerate(zip(records, yellow_marks_per_row)):
         r = 3 + i
-        ws.cell(row=r, column=1, value=i + 1)  # 序号
+        cell = ws.cell(row=r, column=1)
+        if not isinstance(cell, MergedCell):
+            cell.value = i + 1  # 序号
         if rec.装车日期:
-            ws.cell(row=r, column=2, value=rec.装车日期.date())
-            ws.cell(row=r, column=3, value=_dt_to_excel_time(rec.装车日期))
-        ws.cell(row=r, column=4, value=rec.货品名称)
-        ws.cell(row=r, column=5, value=rec.车牌号)
-        ws.cell(row=r, column=6, value=rec.司机姓名)
+            cell = ws.cell(row=r, column=2)
+            if not isinstance(cell, MergedCell):
+                cell.value = rec.装车日期.date()
+            cell = ws.cell(row=r, column=3)
+            if not isinstance(cell, MergedCell):
+                cell.value = _dt_to_excel_time(rec.装车日期)
+        cell = ws.cell(row=r, column=4)
+        if not isinstance(cell, MergedCell):
+            cell.value = rec.货品名称
+        cell = ws.cell(row=r, column=5)
+        if not isinstance(cell, MergedCell):
+            cell.value = rec.车牌号
+        cell = ws.cell(row=r, column=6)
+        if not isinstance(cell, MergedCell):
+            cell.value = rec.司机姓名
         if rec.皮重_吨 is not None:
-            ws.cell(row=r, column=7, value=round(rec.皮重_吨, 2))
+            cell = ws.cell(row=r, column=7)
+            if not isinstance(cell, MergedCell):
+                cell.value = round(rec.皮重_吨, 2)
         if rec.毛重_吨 is not None:
-            ws.cell(row=r, column=8, value=round(rec.毛重_吨, 2))
+            cell = ws.cell(row=r, column=8)
+            if not isinstance(cell, MergedCell):
+                cell.value = round(rec.毛重_吨, 2)
         if rec.净重_吨 is not None:
-            ws.cell(row=r, column=9, value=round(rec.净重_吨, 2))
+            cell = ws.cell(row=r, column=9)
+            if not isinstance(cell, MergedCell):
+                cell.value = round(rec.净重_吨, 2)
 
         # 备注列(J)写入编号/失败提示 + 照片超链接,方便人工复核时直接点开原图
         if image_paths and i < len(image_paths):
             img_path = image_paths[i]
             cell = ws.cell(row=r, column=10)
-            if COL_备注 in yellows:
-                base_text = "识别失败，查看照片"
-            elif rec.备注:
-                base_text = f"{rec.备注} | 查看照片"
-            else:
-                base_text = "查看照片"
-            cell.value = base_text
-            cell.hyperlink = _path_to_hyperlink(img_path)
+            if not isinstance(cell, MergedCell):
+                if COL_备注 in yellows:
+                    base_text = "识别失败，查看照片"
+                elif rec.备注:
+                    base_text = f"{rec.备注} | 查看照片"
+                else:
+                    base_text = "查看照片"
+                cell.value = base_text
+                cell.hyperlink = _path_to_hyperlink(img_path)
 
         # 标黄
         for col_letter, reason in yellows.items():
             cell = ws[f"{col_letter}{r}"]
-            from openpyxl.styles import PatternFill
-            cell.fill = PatternFill("solid", fgColor="FFFF00")
+            if not isinstance(cell, MergedCell):
+                from openpyxl.styles import PatternFill
+                cell.fill = PatternFill("solid", fgColor="FFFF00")
 
     # 更新总行(用新数据范围)
     if total_row > 3:
         last_data_row = 3 + len(records) - 1
-        ws.cell(row=total_row, column=2, value=f"{len(records)}条记录")
-        ws.cell(row=total_row, column=7, value=f"=SUM(G3:G{last_data_row})")
-        ws.cell(row=total_row, column=8, value=f"=SUM(H3:H{last_data_row})")
-        ws.cell(row=total_row, column=9, value=f"=SUM(I3:I{last_data_row})")
+        cell = ws.cell(row=total_row, column=2)
+        if not isinstance(cell, MergedCell):
+            cell.value = f"{len(records)}条记录"
+        cell = ws.cell(row=total_row, column=7)
+        if not isinstance(cell, MergedCell):
+            cell.value = f"=SUM(G3:G{last_data_row})"
+        cell = ws.cell(row=total_row, column=8)
+        if not isinstance(cell, MergedCell):
+            cell.value = f"=SUM(H3:H{last_data_row})"
+        cell = ws.cell(row=total_row, column=9)
+        if not isinstance(cell, MergedCell):
+            cell.value = f"=SUM(I3:I{last_data_row})"
 
     wb.save(output_path)
 
