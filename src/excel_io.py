@@ -77,6 +77,12 @@ def create_daily_xlsx(
         # 没有"合计"行,假设最后一行就是
         total_row = ws.max_row
 
+    # openpyxl 的 insert_rows 不会自动移动合并单元格,
+    # 先取消所有合并区域,插入行后再按需重新合并
+    merged_ranges = list(ws.merged_cells.ranges)
+    for mr in merged_ranges:
+        ws.unmerge_cells(str(mr))
+
     # 如果记录数超过模板预留的数据行数,在合计行前插入足够行
     needed_rows = len(records)
     available_rows = total_row - 3
@@ -163,6 +169,11 @@ def create_daily_xlsx(
         cell = ws.cell(row=total_row, column=9)
         if not isinstance(cell, MergedCell):
             cell.value = f"=SUM(I3:I{last_data_row})"
+
+    # 重新合并标题行和合计行
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=10)
+    if total_row > 3:
+        ws.merge_cells(start_row=total_row, start_column=2, end_row=total_row, end_column=6)
 
     wb.save(output_path)
 
